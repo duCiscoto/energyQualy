@@ -67,7 +67,8 @@ def tensaoMediaHoje(update, context):
     
     mediaHoje = dados.todaysAvg()
 
-    texto = "Número de leituras feitas: " + str(mediaHoje[0][1]) + "\n"
+    texto = "Tensão média de hoje (até o momento)\n"
+    texto += "\nQuantidade de leituras: " + str(mediaHoje[0][1]) + "\n"
     texto += "Tensão média: " + str(round(mediaHoje[0][0])) + "V *\n"
     texto += "\n* Lembro que este valor está arredondado e pode não refletir "
     texto += "a realidade devido a imprecisão dos equipamentos de medição."
@@ -83,7 +84,7 @@ def agora(update, context):
 
     leitura = dados.now()
     
-    texto = "Última leitura realizada:"
+    texto = "Última leitura realizada:\n"
     texto += "\nData: {}".format(leitura[0])
     texto += "\nHora: {}".format(leitura[1])
     texto += "\nTensão na rede: {}\n".format(leitura[2])
@@ -99,11 +100,11 @@ def agora(update, context):
 # Função "Última leitura realizada"
 def menu(update, context):
 
-    texto = '**Menu de informações**\n'
+    texto = 'Menu de informações\n'
     texto += '\n"/comando": "informação"'
     texto += '\n/start: boas-vindas;'
     texto += '\n/agora: última leitura realizada;'
-    texto += '\n/tensaoMediaHoje: média cauculada a partir das leituras de hoje até o momento;'
+    texto += '\n/tensaoMediaHoje: média calculada a partir das leituras de hoje até o momento;'
     texto += '\n/menu: informações disponíveis;'
     
     context.bot.send_message(
