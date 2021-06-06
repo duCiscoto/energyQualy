@@ -67,8 +67,8 @@ def tensaoMediaHoje(update, context):
     
     mediaHoje = dados.todaysAvg()
 
-    texto = "A média das leituras de tensão feitas hoje:\n"
-    texto += "" + str(round(mediaHoje[0][0])) + "V *\n"
+    texto = "Número de leituras feitas: " + str(mediaHoje[0][1]) + "\n"
+    texto += "Tensão média: " + str(round(mediaHoje[0][0])) + "V *\n"
     texto += "\n* Lembro que este valor está arredondado e pode não refletir "
     texto += "a realidade devido a imprecisão dos equipamentos de medição."
     
