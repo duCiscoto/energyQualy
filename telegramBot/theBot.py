@@ -1,3 +1,4 @@
+from DBFunctions import DBFunctions
 import os.path
 import telegram
 import redis
@@ -33,14 +34,17 @@ logging.basicConfig(
     level = logging.INFO
 )
 
+dados = DBFunctions()
+
 
 def start(update, context):
     
-    print('effective_chat: ', update.effective_chat)
-    print('effective_message: ', update.effective_message)
-    print('effective_user: ', update.effective_user)
     chatId = update.effective_chat.id
-    print('chatId: ', chatId)
+    
+    # print('effective_chat: ', update.effective_chat)
+    # print('effective_message: ', update.effective_message)
+    # print('effective_user: ', update.effective_user)
+    # print('chatId: ', chatId)
 
     saudacao = ''
     nome = ''
@@ -52,12 +56,29 @@ def start(update, context):
         nome = update.effective_chat.first_name
 
     texto = "Oi, " + saudacao + nome + "! Eu sou o EnergyBot.\n"
-    texto += "\nFui criado como projeto de TCC do Eduardo Ciscoto (eduardo.ciscoto@gmail.com).\n"
+    texto += "\nFui criado como parte do projeto de TCC do Eduardo Ciscoto.\n"
     texto += "Meu objetivo é reunir dados sobre o fornecimento de energia elétrica, "
     texto += "gerados a partir de diferentes pontos da cidade, analisá-los e apresentar "
     texto += "informações sobre a qualidade do fornecimento as pessoas que quiserem interagir comigo.\n"
     texto += "\nEm breve disponibilizarei estas informações em forma de comandos para serem acessadas.\n"
-    texto += "\nPor enquanto, estou em faze de testes..."
+    texto += "\nPor enquanto, estou em fase de desenvolvimento e testes...\n"
+    # texto += "\nEnvie /menu para conhecer as informações disponíveis no momento."
+    
+    context.bot.send_message(
+        chat_id = update.effective_chat.id,
+        text = texto
+    )
+
+
+# Função "Tensão média do dia de hoje"
+def tensaoMediaHoje(update, context):
+    
+    mediaHoje = dados.todaysAvg()[0][0]
+
+    texto = "A média das leituras de tensão feitas hoje é de:\n"
+    texto += "" + round(mediaHoje) + "V\n"
+    texto += "\nLembro que este valor está arredondado e pode não refletir "
+    texto += "a realidade devido a imprecisão dos equipamentos de medição."
     
     context.bot.send_message(
         chat_id = update.effective_chat.id,
@@ -78,22 +99,24 @@ def echo(update, context):
 def unknown(update, context):
     chatId = update.effective_chat.id
     
-    msg = "Desculpe. Não reconheci o comando enviado."
+    texto = "Desculpe. Não reconheci o comando enviado."
     
     context.bot.send_message(
         chat_id = chatId,
-        text = msg
+        text = texto
     )
 
 
 # Handlers
 start_handler = CommandHandler('start', start)
+tensaoMediaHoje_handler = CommandHandler('tensaoMediaHoje', tensaoMediaHoje)
 echo_handler = MessageHandler(Filters.text & (~Filters.command), echo)
 help_handler = CommandHandler('help', start)
 unknown_handler = MessageHandler(Filters.command, unknown)
 
 # Passando os Handlers
 dispatcher.add_handler(start_handler)
+dispatcher.add_handler(tensaoMediaHoje_handler)
 dispatcher.add_handler(echo_handler)
 dispatcher.add_handler(help_handler)
 dispatcher.add_handler(unknown_handler)
