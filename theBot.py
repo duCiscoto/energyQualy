@@ -1,17 +1,11 @@
 from DBFunctions import DBFunctions
-import os.path
-import telegram
-import redis
-import gettext
 import configparser
-import json
 import logging
 
 from telegram.ext import (
     Updater, 
     CommandHandler,
     MessageHandler,
-    RegexHandler,
     Filters
 )
 
@@ -20,13 +14,11 @@ config = configparser.ConfigParser()
 config.read_file(open('telegramBot/config.ini'))
 
 # Conexão com a API do Telegram
-updater = Updater(token=config['DEFAULT']['token'], use_context=True)
+updater = Updater(
+    token = config['DEFAULT']['token'],
+    use_context = True
+)
 dispatcher = updater.dispatcher
-
-# Conexão com o Redis DB
-# db = redis.StrictRedis(host=config['DB']['host'],
-#                        port=config['DB']['port'],
-#                        db=config['DB']['db'])
 
 # Log padrão
 logging.basicConfig(
@@ -62,7 +54,7 @@ def start(update, context):
     texto += "informações sobre a qualidade do fornecimento as pessoas que quiserem interagir comigo.\n"
     texto += "\nEm breve disponibilizarei estas informações em forma de comandos para serem acessadas.\n"
     texto += "\nPor enquanto, estou em fase de desenvolvimento e testes...\n"
-    # texto += "\nEnvie /menu para conhecer as informações disponíveis no momento."
+    texto += "\nEnvie /menu para conhecer as informações disponíveis até o momento."
     
     context.bot.send_message(
         chat_id = update.effective_chat.id,
@@ -79,6 +71,40 @@ def tensaoMediaHoje(update, context):
     texto += "" + str(round(mediaHoje[0][0])) + "V *\n"
     texto += "\n* Lembro que este valor está arredondado e pode não refletir "
     texto += "a realidade devido a imprecisão dos equipamentos de medição."
+    
+    context.bot.send_message(
+        chat_id = update.effective_chat.id,
+        text = texto
+    )
+
+
+# Função "Última leitura realizada"
+def agora(update, context):
+
+    leitura = dados.now()
+    
+    texto = "Última leitura realizada:"
+    texto += "\nData: {}".format(leitura[0])
+    texto += "\nHora: {}".format(leitura[1])
+    texto += "\nTensão na rede: {}\n".format(leitura[2])
+    texto += "\n* Lembro que este valor está arredondado e pode não refletir "
+    texto += "a realidade devido a imprecisão dos equipamentos de medição."
+    
+    context.bot.send_message(
+        chat_id = update.effective_chat.id,
+        text = texto
+    )
+
+
+# Função "Última leitura realizada"
+def menu(update, context):
+
+    texto = '**Menu de informações**\n'
+    texto += '\n"/comando": "informação"'
+    texto += '\n/start: boas-vindas;'
+    texto += '\n/agora: última leitura realizada;'
+    texto += '\n/tensaoMediaHoje: média cauculada a partir das leituras de hoje até o momento;'
+    texto += '\n/menu: informações disponíveis;'
     
     context.bot.send_message(
         chat_id = update.effective_chat.id,
@@ -110,6 +136,8 @@ def unknown(update, context):
 # Handlers
 start_handler = CommandHandler('start', start)
 tensaoMediaHoje_handler = CommandHandler('tensaoMediaHoje', tensaoMediaHoje)
+agora_handler = CommandHandler('agora', agora)
+menu_handler = CommandHandler('menu', menu)
 echo_handler = MessageHandler(Filters.text & (~Filters.command), echo)
 help_handler = CommandHandler('help', start)
 unknown_handler = MessageHandler(Filters.command, unknown)
@@ -117,6 +145,8 @@ unknown_handler = MessageHandler(Filters.command, unknown)
 # Passando os Handlers
 dispatcher.add_handler(start_handler)
 dispatcher.add_handler(tensaoMediaHoje_handler)
+dispatcher.add_handler(agora_handler)
+dispatcher.add_handler(menu_handler)
 dispatcher.add_handler(echo_handler)
 dispatcher.add_handler(help_handler)
 dispatcher.add_handler(unknown_handler)

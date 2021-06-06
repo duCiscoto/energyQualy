@@ -1,10 +1,11 @@
 import sqlite3, json, re
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 
 
 class DBFunctions():
 
     file = 'leiturasEsp32.db'
+    ultimaLeitura = []
 
     def createConnection(self, dbFile):
         
@@ -53,6 +54,7 @@ class DBFunctions():
 
     def insertLeitura(self, local, tensao, temperatura, umidade, chove):
 
+        agora = datetime.now()
         conn = self.createConnection(self.file)
 
         try:
@@ -61,7 +63,7 @@ class DBFunctions():
                 INSERT INTO leituras (data, local, tensao, temperatura, humidade, choveAgora)
                 VALUES (?,?,?,?,?,?)
                 """,
-                (datetime.now(), local, tensao, temperatura, umidade, chove)
+                (agora, local, tensao, temperatura, umidade, chove)
             )
         except sqlite3.Error as e:
             print(e)
@@ -91,6 +93,30 @@ class DBFunctions():
         conn.close()
 
         return avg
+    
+    
+    def now(self):
+
+        conn = self.createConnection(self.file)
+        cursor = conn.cursor()
+
+        try:
+            cursor.execute("""
+            SELECT *
+            FROM leituras
+            ORDER BY "data" DESC LIMIT 1
+            """
+        )
+        except sqlite3.Error as e:
+            print(e)
+
+        agora = cursor.fetchall()
+        conn.close()
+
+        dataHora = datetime.strptime(agora[0][0], '%Y-%m-%d %H:%M:%S.%f').now()
+        formatado = dataHora.strftime('%d/%m/%Y'), dataHora.strftime('%H:%M:%S'), agora[0][2]
+
+        return formatado
     
     
     # def executeSelect(self, sql):
