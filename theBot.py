@@ -17,7 +17,7 @@ from telegram.ext import (
 
 # Configuração
 config = configparser.ConfigParser()
-config.read_file(open('config.ini'))
+config.read_file(open('telegramBot/config.ini'))
 
 # Conexão com a API do Telegram
 updater = Updater(token=config['DEFAULT']['token'], use_context=True)
@@ -73,11 +73,11 @@ def start(update, context):
 # Função "Tensão média do dia de hoje"
 def tensaoMediaHoje(update, context):
     
-    mediaHoje = dados.todaysAvg()[0][0]
+    mediaHoje = dados.todaysAvg()
 
-    texto = "A média das leituras de tensão feitas hoje é de:\n"
-    texto += "" + round(mediaHoje) + "V\n"
-    texto += "\nLembro que este valor está arredondado e pode não refletir "
+    texto = "A média das leituras de tensão feitas hoje:\n"
+    texto += "" + str(round(mediaHoje[0][0])) + "V *\n"
+    texto += "\n* Lembro que este valor está arredondado e pode não refletir "
     texto += "a realidade devido a imprecisão dos equipamentos de medição."
     
     context.bot.send_message(
