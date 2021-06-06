@@ -79,7 +79,7 @@ class DBFunctions():
 
         try:
             cursor.execute(
-                """SELECT avg(tensao)
+                """SELECT avg(tensao), count(*)
                 FROM leituras
                 WHERE leituras.data like "{}%"
                 """.format(date.today())
