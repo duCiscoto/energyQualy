@@ -1,1 +1,1 @@
-# energyBot
+# energyQualyBot

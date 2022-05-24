@@ -1,5 +1,4 @@
 from DBFunctions import DBFunctions
-from pathlib import Path
 from paho.mqtt import client as mqtt_client
 
 
@@ -35,19 +34,16 @@ def subscribe(client: mqtt_client):
     def on_message(client, userdata, msg):
         
         pub = msg.payload.decode()
-        local = 'Estrela Sul'
+        place = 'Estrela Sul'
         tensao = float(pub)
         temperatura = None
         umidade = None
         chove = None
 
-        if not Path(db.file).exists():
-            db.createDB()
-
         print(f"Recebido '{msg.payload.decode()}' do tópico '{msg.topic}'")
         
         db.insertLeitura(
-            local, tensao, temperatura, umidade, chove
+            place, tensao, temperatura, umidade, chove
         )
 
     client.subscribe(topic)

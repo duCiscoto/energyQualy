@@ -1,4 +1,5 @@
 from DBFunctions import DBFunctions
+from datetime import datetime
 import configparser
 import logging
 
@@ -30,6 +31,8 @@ dados = DBFunctions()
 
 
 def start(update, context):
+
+    # interacao(update)
     
     chatId = update.effective_chat.id
     
@@ -42,7 +45,7 @@ def start(update, context):
     nome = ''
 
     if update.effective_chat.type == 'group':
-        saudacao = 'grupo '
+        saudacao = ' pessoal do grupo '
         nome = update.effective_chat.title
     else:
         nome = update.effective_chat.first_name
@@ -64,6 +67,8 @@ def start(update, context):
 
 # Função "Tensão média do dia de hoje"
 def tensaoMediaHoje(update, context):
+
+    # interacao(update)
     
     mediaHoje = dados.todaysAvg()
 
@@ -81,6 +86,8 @@ def tensaoMediaHoje(update, context):
 
 # Função "Última leitura realizada"
 def agora(update, context):
+
+    # interacao(update)
 
     leitura = dados.now()
     
@@ -100,6 +107,8 @@ def agora(update, context):
 # Função "Última leitura realizada"
 def menu(update, context):
 
+    # interacao(update)
+
     texto = 'Menu de informações\n'
     texto += '\n"/comando": "informação"'
     texto += '\n/start: boas-vindas;'
@@ -115,6 +124,8 @@ def menu(update, context):
 
 # Função "Eco" (envia o que recebe)
 def echo(update, context):
+
+    # interacao(update)
     
     context.bot.send_message(
         chat_id = update.effective_chat.id,
@@ -124,6 +135,9 @@ def echo(update, context):
 
 # Trata comandos desconhecidos enviados pelo usuário
 def unknown(update, context):
+
+    # interacao(update)
+    
     chatId = update.effective_chat.id
     
     texto = "Desculpe. Não reconheci o comando enviado."
@@ -151,6 +165,35 @@ dispatcher.add_handler(menu_handler)
 dispatcher.add_handler(echo_handler)
 dispatcher.add_handler(help_handler)
 dispatcher.add_handler(unknown_handler)
+
+# def interacao(update):
+
+#     chatId = update.effective_chat.id
+    
+#     # print('effective_chat: ', update.effective_chat)
+#     # print('effective_message: ', update.effective_message)
+#     # print('effective_user: ', update.effective_user)
+#     # print('chatId: ', chatId)
+
+#     saudacao = ''
+#     nome = ''
+#     mensagem = update.effective_message
+#     agora = datetime.now()
+
+#     if update.effective_chat.type == 'group':
+#         saudacao = 'Grupo '
+#         nome = update.effective_chat.title
+#     else:
+#         nome = '{} {}'.format(
+#             update.effective_chat.first_name,
+#             update.effective_chat.last_name
+#         )
+    
+#     texto = 'Update: ' + str(agora.strftime('%d/%m/%Y')) + str(agora.strftime('%H:%M:%S'))
+#     texto += '\nFrom: ' + saudacao + nome
+#     texto += '\nMessage, ' + mensagem + '\n'
+
+#     print(texto)
 
 # to run this program:
 # updater.start_polling()
