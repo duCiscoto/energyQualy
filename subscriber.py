@@ -5,6 +5,7 @@ from paho.mqtt import client as mqtt_client
 broker = 'broker.emqx.io'
 port = 1883
 topic = "tccEngSoftwareECC/Metropolitan"
+# monitorar o tópico tccEngSoftwareECC e, para cada sequência, um novo lugar (automático?)
 
 client_id = 'assinanteTcc'
 username = ''
@@ -32,19 +33,23 @@ def connect_mqtt() -> mqtt_client:
 def subscribe(client: mqtt_client):
 
     def on_message(client, userdata, msg):
+
+        leitura = {}
         
         pub = msg.payload.decode()
-        place = 'Estrela Sul'
-        tensao = float(pub)
-        temperatura = None
-        umidade = None
-        chove = None
-
-        print(f"Recebido '{msg.payload.decode()}' do tópico '{msg.topic}'")
+        # cep = capturar do tópico da publicação
         
-        db.insertLeitura(
-            place, tensao, temperatura, umidade, chove
-        )
+        leitura['cep'] = 36030711
+        leitura['fase1'] = float(pub)
+        leitura['fase2'] = None # adicionar publicação no ESP32
+        leitura['fase3'] = None # adicionar publicação no ESP32
+        leitura['temperatura'] = None # configurar sensor
+        leitura['humidade'] = None # configurar sensor
+        leitura['chove'] = None # configurar sensor
+
+        print(f"Recebido '{pub}' do tópico '{msg.topic}'")
+        
+        db.insertLeitura(leitura)
 
     client.subscribe(topic)
     client.on_message = on_message
