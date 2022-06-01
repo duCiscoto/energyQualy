@@ -48,7 +48,14 @@ def subscribe(client: mqtt_client):
         leitura['chove'] = None # configurar sensor
 
         print(f"Recebido '{pub}' do tópico '{msg.topic}'")
+
+        variou = db.variouTensao(leitura)
         
+        if variou == True:
+            # notifica interessados no cep
+            pass
+
+
         db.insertLeitura(leitura)
 
     client.subscribe(topic)

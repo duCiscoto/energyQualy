@@ -82,7 +82,7 @@ def tensaoMediaHoje(update, context):
         if mediaHoje[0][2] != None:
             texto += "Fase 3: " + str(round(mediaHoje[0][2])) + "V *\n"
         else:
-            texto += "Fase 3: sem leituras até o momento\n"
+            texto += "Fase 3: sem leituras\n"
         texto += "\n* Valores arredondados. Podem não refletir "
         texto += "a realidade devido a imprecisão dos equipamentos de medição."
     else:
@@ -99,8 +99,7 @@ def agora(update, context):
 
     interacao(update, 'Última leitura')
 
-    leitura = dados.now()
-    # formatado = agora[0][1].strftime('%d/%m/%Y'), agora[0][1].strftime('%H:%M:%S'), agora[0][3]
+    leitura = dados.lastEntry()
     data = leitura[0][1].strftime('%d/%m/%Y')
     hora = leitura[0][1].strftime('%H:%M:%S')
     
@@ -197,11 +196,11 @@ def interacao(update, comando):
     hora = agora.strftime('%H:%M:%S')
     data = agora.strftime('%d/%m/%Y')
 
-    texto = '\n * * * * * INTERAÇÃO * * * * * '
+    texto = '\n* * * * * INTERAÇÃO * * * * * '
     texto += '\nQuando: {} - {}'.format(hora, data)
     texto += '\nQuem: ' + nome
     texto += '\nO quê: ' + comando
-    texto += '\n * * * * * * * * * * * * * * *'
+    texto += '\n* * * * * * * * * * * * * * *'
 
     print(texto)
 

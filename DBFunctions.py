@@ -149,10 +149,9 @@ class DBFunctions():
         return avg
 
 
-    def now(self):
+    def lastEntry(self):
 
         conn = None
-        formatado = None
 
         try:
             params = config()
@@ -168,7 +167,62 @@ class DBFunctions():
             agora = cur.fetchall()
 
             #tratar exceção caso "dê ruim" no retorno do banco
-            # formatado = agora[0][1].strftime('%d/%m/%Y'), agora[0][1].strftime('%H:%M:%S'), agora[0][3]
+
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
+        finally:
+            if conn is not None:
+                conn.close()
+
+        return agora
+    
+    
+    def lastEntryCep(self, cep):
+
+        conn = None
+
+        try:
+            params = config()
+            conn = psycopg2.connect(**params)
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT *
+                FROM leituras l
+                where l.cep = {}
+                ORDER BY "datahora" DESC LIMIT 1
+                """.format(cep)
+            )
+
+            agora = cur.fetchall()
+
+            #tratar exceção caso "dê ruim" no retorno do banco
+
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
+        finally:
+            if conn is not None:
+                conn.close()
+
+        return agora
+    
+    
+    def last15EntriesAvg(self):
+
+        conn = None
+
+        try:
+            params = config()
+            conn = psycopg2.connect(**params)
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT AVG(fase1), AVG(fase2), AVG(fase3)
+                FROM leituras
+                """
+            )
+
+            agora = cur.fetchall()
+
+            #tratar exceção caso "dê ruim" no retorno do banco
 
         except (Exception, psycopg2.DatabaseError) as error:
             print(error)
@@ -189,7 +243,7 @@ class DBFunctions():
             cur = conn.cursor()
             cur.execute("""
                 select * 
-                from public.locais l 
+                from locais l 
                 where l.cep = {} limit 1;
                 """.format(cep)
             )
@@ -204,3 +258,69 @@ class DBFunctions():
 
         return bool(retorno)
 
+
+    def interessadosCep(self, cep):
+        """
+            Retorna os chatIDs dos interessados no CEP fornecido
+        """
+
+        conn = None
+
+        try:
+            params = config()
+            conn = psycopg2.connect(**params)
+            cur = conn.cursor()
+            cur.execute("""
+                select chatid 
+                from alertados a 
+                where a.cep = {};
+                """.format(cep)
+            )
+            
+            retorno = cur.fetchall()
+        
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
+        finally:
+            if conn is not None:
+                conn.close()
+
+        return retorno
+
+
+    def variouTensao(self, leitura):
+
+        ultima = self.lastEntryCep(leitura['cep'])
+        alerta = []
+        
+        if leitura['fase1'] != None: # if não tá funcionando
+            if (leitura['fase1'] <= (0.05 * float(ultima[0][3]))) or (leitura['fase1'] > (0.05 * float(ultima[0][3]))):
+                alerta.append(('Fase 1', leitura['fase1'], ultima[0][3]))
+        
+        if leitura['fase2'] != None:
+            if (leitura['fase2'] <= (0.05 * float(ultima[0][4]))) or (leitura['fase2'] > (0.05 * float(ultima[0][4]))):
+                alerta.append(('Fase 2', leitura['fase2'], ultima[0][4]))
+        
+        if leitura['fase3'] != None:
+            if (leitura['fase3'] <= (0.05 * float(ultima[0][5]))) or (leitura['fase2'] > (0.05 * float(ultima[0][5]))):
+                alerta.append(('Fase 3', leitura['fase3'], ultima[0][5]))
+                
+        if len(alerta) != 0:
+            interessados = self.interessadosCep(leitura['cep'])
+            for id in interessados:
+                texto = 'Alertar Chat ID: {}\n'.format(id[0])
+                texto += 'Variações observadas:\n'
+                for a in alerta:
+                    texto += '{}: de {}V para {}V\n'.format(
+                        a[0],
+                        str(a[1]).replace('.', ','),
+                        str(a[2]).replace('.', ',')
+                    )
+                
+                print(texto)
+
+            # IMPLEMENTAR AONDE?
+            # self.alertar(interessados, leitura)
+
+
+    # def alertar(self, leitura):
