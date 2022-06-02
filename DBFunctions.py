@@ -1,4 +1,4 @@
-import psycopg2
+import psycopg2, theBot
 from config import config
 from datetime import datetime, date, timezone
 
@@ -118,6 +118,34 @@ class DBFunctions():
                 conn.close()
 
         print('Local armazenado: "{}"!'.format(local))
+    
+    
+    def insertInteressado(self, chatId, cep):
+
+        agora = datetime.now()
+        conn = None
+
+        try:
+            params = config()
+            conn = psycopg2.connect(**params)
+            cur = conn.cursor()
+            cur.execute("""
+                INSERT INTO alertados (datahora, chatid, cep)
+                VALUES(%s,%s,%s)
+                """,
+                (agora, chatId, cep)
+            )
+
+            conn.commit()
+            cur.close()
+        
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
+        finally:
+            if conn is not None:
+                conn.close()
+
+        print('Interessado cadastrado: "{}"!'.format(chatId))
 
 
     def todaysAvg(self):
@@ -286,6 +314,64 @@ class DBFunctions():
                 conn.close()
 
         return retorno
+    
+    
+    def interessadoNoCep(self, chatId, cep):
+        """
+            Verifica se o chatId já está monitorando o CEP
+        """
+
+        conn = None
+
+        try:
+            params = config()
+            conn = psycopg2.connect(**params)
+            cur = conn.cursor()
+            cur.execute("""
+                select * 
+                from alertados a 
+                where a.cep = {} and a.chatid = {}
+                """.format(cep, chatId)
+            )
+            
+            retorno = cur.fetchall()
+        
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
+        finally:
+            if conn is not None:
+                conn.close()
+
+        return retorno
+    
+    
+    def cepMonitorado(self, cep):
+        """
+            Verifica se o CEP fornecido possui monitoramento
+        """
+
+        conn = None
+
+        try:
+            params = config()
+            conn = psycopg2.connect(**params)
+            cur = conn.cursor()
+            cur.execute("""
+                select * 
+                from locais l 
+                where l.cep = {};
+                """.format(cep)
+            )
+            
+            retorno = cur.fetchall()
+        
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
+        finally:
+            if conn is not None:
+                conn.close()
+
+        return retorno
 
 
     def variouTensao(self, leitura):
@@ -306,21 +392,18 @@ class DBFunctions():
                 alerta.append(('Fase 3', leitura['fase3'], ultima[0][5]))
                 
         if len(alerta) != 0:
+            for a in alerta:
+                texto += '{}: de {}V para {}V\n'.format(
+                    a[0],
+                    str(a[1]).replace('.', ','),
+                    str(a[2]).replace('.', ',')
+                )
+
             interessados = self.interessadosCep(leitura['cep'])
             for id in interessados:
                 texto = 'Alertar Chat ID: {}\n'.format(id[0])
                 texto += 'Variações observadas:\n'
-                for a in alerta:
-                    texto += '{}: de {}V para {}V\n'.format(
-                        a[0],
-                        str(a[1]).replace('.', ','),
-                        str(a[2]).replace('.', ',')
-                    )
                 
+                # theBot.enviaNotificacao(texto, id[0])
                 print(texto)
 
-            # IMPLEMENTAR AONDE?
-            # self.alertar(interessados, leitura)
-
-
-    # def alertar(self, leitura):

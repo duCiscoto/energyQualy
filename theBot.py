@@ -2,6 +2,7 @@ from DBFunctions import DBFunctions
 from datetime import datetime, date
 import configparser
 import logging
+import telegram
 
 from telegram.ext import (
     Updater, 
@@ -144,8 +145,6 @@ def menu(update, context):
         text = texto
     )
 
-    # interacao(update, context)
-
 
 # Função "Eco" (envia o que recebe)
 def echo(update, context):
@@ -171,6 +170,40 @@ def unknown(update, context):
         chat_id = chatId,
         text = texto
     )
+
+
+# Cadastra CEP de interesse do usuário
+def monitorar(update, context):
+
+    interacao(update, 'Monitorar')
+    
+    chatId = update.effective_chat.id
+    texto = ''
+    
+    try:
+        # TRATAR CEP DIFERENTE DE NÚMEROS
+        cep = context.args[0]
+        if len(dados.cepMonitorado(cep)) != 0:
+            if len(dados.interessadoNoCep(chatId, cep)) == 0:
+                dados.insertInteressado(chatId, cep)
+                texto += 'Cadastro realizado com sucesso!\n'
+                texto += 'A partir de agora, se houver grandes oscilações '
+                texto += 'na rede, você será notificado.'
+            else:
+                texto += 'Você já está monitorando o CEP fornecido.'
+        else:
+            texto += 'Ainda não há monitoramento no CEP fornecido.'
+
+    except (IndexError, ValueError):
+        texto = 'Por favor, digite "/monitorar CEP"'
+    
+    context.bot.send_message(
+        chat_id = chatId,
+        text = texto
+    )
+
+
+# IMPLEMENTAR abandonar cep
 
 
 def interacao(update, comando):
@@ -205,6 +238,12 @@ def interacao(update, comando):
     print(texto)
 
 
+def enviaNotificacao(msg, chatId):
+    
+    bot = telegram.Bot(token=config['DEFAULT']['token'])
+    bot.send_message(chat_id=chatId, text=msg)
+
+
 # Handlers
 start_handler = CommandHandler('start', start)
 tensaoMediaHoje_handler = CommandHandler('tensaoMediaHoje', tensaoMediaHoje)
@@ -212,6 +251,7 @@ agora_handler = CommandHandler('agora', agora)
 menu_handler = CommandHandler('menu', menu)
 echo_handler = MessageHandler(Filters.text & (~Filters.command), echo)
 help_handler = CommandHandler('help', start)
+monitorar_handler = CommandHandler('monitorar', monitorar)
 unknown_handler = MessageHandler(Filters.command, unknown)
 
 # Passando os Handlers
@@ -221,6 +261,7 @@ dispatcher.add_handler(agora_handler)
 dispatcher.add_handler(menu_handler)
 dispatcher.add_handler(echo_handler)
 dispatcher.add_handler(help_handler)
+dispatcher.add_handler(monitorar_handler)
 dispatcher.add_handler(unknown_handler)
 
 
