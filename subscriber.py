@@ -1,5 +1,6 @@
 from DBFunctions import DBFunctions
 from paho.mqtt import client as mqtt_client
+import theBot
 
 
 broker = 'broker.emqx.io'
@@ -39,7 +40,7 @@ def subscribe(client: mqtt_client):
         pub = msg.payload.decode()
         # cep = capturar do tópico da publicação
         
-        leitura['cep'] = 36030711
+        leitura['cep'] = 36030711 #passar sempre inteiro
         leitura['fase1'] = float(pub)
         leitura['fase2'] = None # adicionar publicação no ESP32
         leitura['fase3'] = None # adicionar publicação no ESP32
@@ -50,10 +51,18 @@ def subscribe(client: mqtt_client):
         print(f"Recebido '{pub}' do tópico '{msg.topic}'")
 
         variou = db.variouTensao(leitura)
+        #variou ainda não funciona
+        #dispara mensagens a cada publicação
         
-        if variou == True:
-            # notifica interessados no cep
-            pass
+        if variou:
+            interessados = db.interessadosCep(leitura['cep'])
+            for id in interessados:
+                theBot.enviaNotificacao(variou, id[0])
+                print('Alerta do CEP {}-{} enviado para chatId {}'.format(
+                    str(leitura['cep'])[:5],
+                    str(leitura['cep'])[5:],
+                    id[0]
+                ))
 
 
         db.insertLeitura(leitura)

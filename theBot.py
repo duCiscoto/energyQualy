@@ -96,7 +96,7 @@ def tensaoMediaHoje(update, context):
 
 
 # Função "Última leitura realizada"
-def agora(update, context):
+def ultima(update, context):
 
     interacao(update, 'Última leitura')
 
@@ -133,12 +133,15 @@ def menu(update, context):
 
     interacao(update, 'Menu')
 
-    texto = 'Menu de informações\n'
-    texto += '\n"/comando": "informação"'
-    texto += '\n /start: boas-vindas;'
-    texto += '\n /agora: última leitura realizada;'
-    texto += '\n /tensaoMediaHoje: média calculada a partir das leituras de hoje até o momento;'
-    texto += '\n /menu: informações disponíveis;'
+    texto = 'Menu de interações\n'
+    texto += '\n "/comando": "informação"'
+    texto += '\n "/start": boas-vindas;'
+    # texto += '\n /agora: última leitura realizada;'
+    # texto += '\n /tensaoMediaHoje: média calculada a partir das leituras de hoje até o momento;'
+    texto += '\n "/listarceps": lista os CEPs monitorados;'
+    texto += '\n "/monitorar #CEP": inicia o monitoramento do CEP;'
+    texto += '\n "/abandonar #CEP": deixa de monitorar o CEP;'
+    texto += '\n "/menu": interações disponíveis;'
     
     context.bot.send_message(
         chat_id = update.effective_chat.id,
@@ -172,6 +175,30 @@ def unknown(update, context):
     )
 
 
+# Lista CEPs monitorados
+def listarCeps(update, context):
+
+    interacao(update, 'Listar CEPs')
+    
+    chatId = update.effective_chat.id
+    lista = dados.listarCepsMonitorados()
+    texto = ''
+    
+    if len(lista) != 0:
+        texto += 'Lista de CEPs monitorados:\n\n'
+        for i, cep in enumerate(lista):
+            texto += '{} - {}-{}\n'.format(i+1, str(cep[0])[:5], str(cep[0])[5:])
+    else:
+        texto += 'Sinto muito.\n'
+        texto += 'Ainda não existem CEPs monitorados.'
+
+    
+    context.bot.send_message(
+        chat_id = chatId,
+        text = texto
+    )
+
+
 # Cadastra CEP de interesse do usuário
 def monitorar(update, context):
 
@@ -182,7 +209,8 @@ def monitorar(update, context):
     
     try:
         # TRATAR CEP DIFERENTE DE NÚMEROS
-        cep = context.args[0]
+        c = context.args[0]
+        cep = c.replace('-', '').strip()
         if len(dados.cepMonitorado(cep)) != 0:
             if len(dados.interessadoNoCep(chatId, cep)) == 0:
                 dados.insertInteressado(chatId, cep)
@@ -195,7 +223,7 @@ def monitorar(update, context):
             texto += 'Ainda não há monitoramento no CEP fornecido.'
 
     except (IndexError, ValueError):
-        texto = 'Por favor, digite "/monitorar CEP"'
+        texto = 'Por favor, digite "/monitorar #CEP"'
     
     context.bot.send_message(
         chat_id = chatId,
@@ -203,7 +231,33 @@ def monitorar(update, context):
     )
 
 
-# IMPLEMENTAR abandonar cep
+# Usuário deixa de monitorar o CEP
+def abandonar(update, context):
+
+    interacao(update, 'Abandonar')
+    
+    chatId = update.effective_chat.id
+    texto = ''
+    
+    try:
+        # TRATAR CEP DIFERENTE DE NÚMEROS
+        c = context.args[0]
+        cep = c.replace('-', '').strip()
+        if len(dados.interessadoNoCep(chatId, cep)) != 0:
+            dados.deleteInteressado(chatId, cep)
+            texto += 'Exclusão realizada com sucesso!\n'
+            texto += 'A partir de agora, você não será notificado '
+            texto += 'em caso de oscilações na rede.'
+        else:
+            texto += 'Você não está monitorando o CEP fornecido.'
+
+    except (IndexError, ValueError):
+        texto = 'Por favor, digite "/abandonar #CEP"'
+    
+    context.bot.send_message(
+        chat_id = chatId,
+        text = texto
+    )
 
 
 def interacao(update, comando):
@@ -242,26 +296,34 @@ def enviaNotificacao(msg, chatId):
     
     bot = telegram.Bot(token=config['DEFAULT']['token'])
     bot.send_message(chat_id=chatId, text=msg)
+    # context.bot.send_message(
+    #     chat_id = chatId,
+    #     text = msg
+    # )
 
 
 # Handlers
 start_handler = CommandHandler('start', start)
-tensaoMediaHoje_handler = CommandHandler('tensaoMediaHoje', tensaoMediaHoje)
-agora_handler = CommandHandler('agora', agora)
+tensaoMediaHoje_handler = CommandHandler('tensaomediahoje', tensaoMediaHoje)
+ultima_handler = CommandHandler('ultimaleitura', ultima)
 menu_handler = CommandHandler('menu', menu)
 echo_handler = MessageHandler(Filters.text & (~Filters.command), echo)
 help_handler = CommandHandler('help', start)
+listarceps_handler = CommandHandler('listarceps', listarCeps)
 monitorar_handler = CommandHandler('monitorar', monitorar)
+abandonar_handler = CommandHandler('abandonar', abandonar)
 unknown_handler = MessageHandler(Filters.command, unknown)
 
 # Passando os Handlers
 dispatcher.add_handler(start_handler)
 dispatcher.add_handler(tensaoMediaHoje_handler)
-dispatcher.add_handler(agora_handler)
+dispatcher.add_handler(ultima_handler)
 dispatcher.add_handler(menu_handler)
 dispatcher.add_handler(echo_handler)
 dispatcher.add_handler(help_handler)
+dispatcher.add_handler(listarceps_handler)
 dispatcher.add_handler(monitorar_handler)
+dispatcher.add_handler(abandonar_handler)
 dispatcher.add_handler(unknown_handler)
 
 

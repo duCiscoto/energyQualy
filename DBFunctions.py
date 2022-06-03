@@ -1,4 +1,4 @@
-import psycopg2, theBot
+import psycopg2
 from config import config
 from datetime import datetime, date, timezone
 
@@ -146,6 +146,33 @@ class DBFunctions():
                 conn.close()
 
         print('Interessado cadastrado: "{}"!'.format(chatId))
+    
+    
+    def deleteInteressado(self, chatId, cep):
+
+        agora = datetime.now()
+        conn = None
+
+        try:
+            params = config()
+            conn = psycopg2.connect(**params)
+            cur = conn.cursor()
+            cur.execute("""
+                DELETE FROM alertados a
+                WHERE a.chatid = {} and a.cep = {}
+                """.format(chatId, cep)
+            )
+
+            conn.commit()
+            cur.close()
+        
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
+        finally:
+            if conn is not None:
+                conn.close()
+
+        print('"{}" deixou de monitorar o CEP "{}"!'.format(chatId, cep))
 
 
     def todaysAvg(self):
@@ -372,26 +399,65 @@ class DBFunctions():
                 conn.close()
 
         return retorno
+    
+    
+    def listarCepsMonitorados(self):
+        """
+            Retorna lista de CEPs em monitoramento
+        """
+
+        conn = None
+
+        try:
+            params = config()
+            conn = psycopg2.connect(**params)
+            cur = conn.cursor()
+            cur.execute("""
+                select cep 
+                from locais
+                """
+            )
+            
+            retorno = cur.fetchall()
+        
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
+        finally:
+            if conn is not None:
+                conn.close()
+
+        return retorno
 
 
     def variouTensao(self, leitura):
 
-        ultima = self.lastEntryCep(leitura['cep'])
+        anterior = self.lastEntryCep(leitura['cep'])
         alerta = []
+        texto = ''
         
         if leitura['fase1'] != None: # if não tá funcionando
-            if (leitura['fase1'] <= (0.05 * float(ultima[0][3]))) or (leitura['fase1'] > (0.05 * float(ultima[0][3]))):
-                alerta.append(('Fase 1', leitura['fase1'], ultima[0][3]))
+            if (leitura['fase1'] <= ((0.15 * float(anterior[0][3])) + float(anterior[0][3]))):
+                alerta.append(('Fase 1', leitura['fase1'], anterior[0][3]))
+            if (leitura['fase1'] > ((0.15 * float(anterior[0][3])) + float(anterior[0][3]))):
+                alerta.append(('Fase 1', leitura['fase1'], anterior[0][3]))
         
         if leitura['fase2'] != None:
-            if (leitura['fase2'] <= (0.05 * float(ultima[0][4]))) or (leitura['fase2'] > (0.05 * float(ultima[0][4]))):
-                alerta.append(('Fase 2', leitura['fase2'], ultima[0][4]))
+            if (leitura['fase2'] <= ((0.15 * float(anterior[0][4])) + float(anterior[0][4]))):
+                alerta.append(('Fase 2', leitura['fase2'], anterior[0][4]))
+            if (leitura['fase2'] > ((0.15 * float(anterior[0][4])) + float(anterior[0][4]))):
+                alerta.append(('Fase 2', leitura['fase2'], anterior[0][4]))
         
         if leitura['fase3'] != None:
-            if (leitura['fase3'] <= (0.05 * float(ultima[0][5]))) or (leitura['fase2'] > (0.05 * float(ultima[0][5]))):
-                alerta.append(('Fase 3', leitura['fase3'], ultima[0][5]))
+            if (leitura['fase3'] <= ((0.15 * float(anterior[0][5])) + float(anterior[0][5]))):
+                alerta.append(('Fase 3', leitura['fase3'], anterior[0][5]))
+            if (leitura['fase2'] > ((0.15 * float(anterior[0][5])) + float(anterior[0][5]))):
+                alerta.append(('Fase 3', leitura['fase3'], anterior[0][5]))
                 
-        if len(alerta) != 0:
+        if alerta:
+            texto += 'Variações observadas no CEP {}-{}:\n'.format(
+                str(leitura['cep'])[:5],
+                str(leitura['cep'])[5:]
+            )
             for a in alerta:
                 texto += '{}: de {}V para {}V\n'.format(
                     a[0],
@@ -399,11 +465,13 @@ class DBFunctions():
                     str(a[2]).replace('.', ',')
                 )
 
-            interessados = self.interessadosCep(leitura['cep'])
-            for id in interessados:
-                texto = 'Alertar Chat ID: {}\n'.format(id[0])
-                texto += 'Variações observadas:\n'
+            # interessados = self.interessadosCep(leitura['cep'])
+            # for id in interessados:
+            #     texto = 'Alertar Chat ID: {}\n'.format(id[0])
+            #     texto += 'Variações observadas:\n'
                 
-                # theBot.enviaNotificacao(texto, id[0])
-                print(texto)
+            #     # theBot.enviaNotificacao(texto, id[0])
+            #     print(texto)
+
+        return texto
 
