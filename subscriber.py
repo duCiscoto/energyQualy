@@ -51,8 +51,6 @@ def subscribe(client: mqtt_client):
         print(f"Recebido '{pub}' do tópico '{msg.topic}'")
 
         variou = db.variouTensao(leitura)
-        #variou ainda não funciona
-        #dispara mensagens a cada publicação
         
         if variou:
             interessados = db.interessadosCep(leitura['cep'])
@@ -64,8 +62,8 @@ def subscribe(client: mqtt_client):
                     id[0]
                 ))
 
-
         db.insertLeitura(leitura)
+
 
     client.subscribe(topic)
     client.on_message = on_message

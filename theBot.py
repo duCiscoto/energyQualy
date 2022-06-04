@@ -1,3 +1,4 @@
+import re
 from DBFunctions import DBFunctions
 from datetime import datetime, date
 import configparser
@@ -96,36 +97,36 @@ def tensaoMediaHoje(update, context):
 
 
 # Função "Última leitura realizada"
-def ultima(update, context):
+# def ultimaleitura(update, context):
 
-    interacao(update, 'Última leitura')
+#     interacao(update, 'Última leitura')
 
-    leitura = dados.lastEntry()
-    data = leitura[0][1].strftime('%d/%m/%Y')
-    hora = leitura[0][1].strftime('%H:%M:%S')
+#     leitura = dados.lastEntry()
+#     data = leitura[0][1].strftime('%d/%m/%Y')
+#     hora = leitura[0][1].strftime('%H:%M:%S')
     
-    texto = "Última leitura realizada às "
-    texto += "{} de".format(hora)
-    texto += " {}\n".format(data)
-    if leitura[0][3] != None:
-        texto += "\nFase 1: {}V".format(str(leitura[0][3]).replace('.', ','))
-    else:
-        texto += "\nFase 1: sem leitura"
-    if leitura[0][4] != None:
-        texto += "\nFase 2: {}V".format(str(leitura[0][4]).replace('.', ','))
-    else:
-        texto += "\nFase 2: sem leitura"
-    if leitura[0][5] != None:
-        texto += "\nFase 3: {}V\n".format(str(leitura[0][5]).replace('.', ','))
-    else:
-        texto += "\nFase 3: sem leitura\n"
-    texto += "\n* Valores arredondados. Pode não refletir "
-    texto += "a realidade devido a imprecisão dos equipamentos de medição."
+#     texto = "Última leitura realizada às "
+#     texto += "{} de".format(hora)
+#     texto += " {}\n".format(data)
+#     if leitura[0][3] != None:
+#         texto += "\nFase 1: {}V".format(str(leitura[0][3]).replace('.', ','))
+#     else:
+#         texto += "\nFase 1: sem leitura"
+#     if leitura[0][4] != None:
+#         texto += "\nFase 2: {}V".format(str(leitura[0][4]).replace('.', ','))
+#     else:
+#         texto += "\nFase 2: sem leitura"
+#     if leitura[0][5] != None:
+#         texto += "\nFase 3: {}V\n".format(str(leitura[0][5]).replace('.', ','))
+#     else:
+#         texto += "\nFase 3: sem leitura\n"
+#     texto += "\n* Valores arredondados. Pode não refletir "
+#     texto += "a realidade devido a imprecisão dos equipamentos de medição."
     
-    context.bot.send_message(
-        chat_id = update.effective_chat.id,
-        text = texto
-    )
+#     context.bot.send_message(
+#         chat_id = update.effective_chat.id,
+#         text = texto
+#     )
 
 
 # Função "Última leitura realizada"
@@ -136,7 +137,7 @@ def menu(update, context):
     texto = 'Menu de interações\n'
     texto += '\n "/comando": "informação"'
     texto += '\n "/start": boas-vindas;'
-    # texto += '\n /agora: última leitura realizada;'
+    # texto += '\n /ultimaleitura: última leitura nos CEPs monitorados;'
     # texto += '\n /tensaoMediaHoje: média calculada a partir das leituras de hoje até o momento;'
     texto += '\n "/listarceps": lista os CEPs monitorados;'
     texto += '\n "/monitorar #CEP": inicia o monitoramento do CEP;'
@@ -186,8 +187,14 @@ def listarCeps(update, context):
     
     if len(lista) != 0:
         texto += 'Lista de CEPs monitorados:\n\n'
-        for i, cep in enumerate(lista):
-            texto += '{} - {}-{}\n'.format(i+1, str(cep[0])[:5], str(cep[0])[5:])
+        for i, local in enumerate(lista):
+            texto += '{} - {}-{}: {}\n'.format(
+                i + 1,
+                str(local[0])[:5],
+                str(local[0])[5:],
+                local[1]
+            )
+        texto += '\nPara monitorar um local, envie "/monitorar #CEP".'
     else:
         texto += 'Sinto muito.\n'
         texto += 'Ainda não existem CEPs monitorados.'
@@ -203,24 +210,25 @@ def listarCeps(update, context):
 def monitorar(update, context):
 
     interacao(update, 'Monitorar')
-    
     chatId = update.effective_chat.id
     texto = ''
     
     try:
-        # TRATAR CEP DIFERENTE DE NÚMEROS
         c = context.args[0]
-        cep = c.replace('-', '').strip()
-        if len(dados.cepMonitorado(cep)) != 0:
-            if len(dados.interessadoNoCep(chatId, cep)) == 0:
-                dados.insertInteressado(chatId, cep)
-                texto += 'Cadastro realizado com sucesso!\n'
-                texto += 'A partir de agora, se houver grandes oscilações '
-                texto += 'na rede, você será notificado.'
+        cep = re.sub('[^0-9]', '', c)
+        if len(cep):
+            if len(dados.cepMonitorado(cep)) != 0:
+                if len(dados.interessadoNoCep(chatId, cep)) == 0:
+                    dados.insertInteressado(chatId, cep)
+                    texto += 'Cadastro realizado com sucesso!\n'
+                    texto += 'A partir de agora, se houver grandes oscilações '
+                    texto += 'na rede, você será notificado.'
+                else:
+                    texto += 'Você já está monitorando o CEP fornecido.'
             else:
-                texto += 'Você já está monitorando o CEP fornecido.'
+                texto += 'Ainda não há monitoramento no CEP fornecido.'
         else:
-            texto += 'Ainda não há monitoramento no CEP fornecido.'
+            texto = 'Por favor, digite "/monitorar #CEP"'
 
     except (IndexError, ValueError):
         texto = 'Por favor, digite "/monitorar #CEP"'
@@ -235,21 +243,22 @@ def monitorar(update, context):
 def abandonar(update, context):
 
     interacao(update, 'Abandonar')
-    
     chatId = update.effective_chat.id
     texto = ''
     
     try:
-        # TRATAR CEP DIFERENTE DE NÚMEROS
         c = context.args[0]
-        cep = c.replace('-', '').strip()
-        if len(dados.interessadoNoCep(chatId, cep)) != 0:
-            dados.deleteInteressado(chatId, cep)
-            texto += 'Exclusão realizada com sucesso!\n'
-            texto += 'A partir de agora, você não será notificado '
-            texto += 'em caso de oscilações na rede.'
+        cep = re.sub('[^0-9]', '', c)
+        if len(cep):
+            if len(dados.interessadoNoCep(chatId, cep)) != 0:
+                dados.deleteInteressado(chatId, cep)
+                texto += 'Exclusão realizada com sucesso!\n'
+                texto += 'A partir de agora, você não será notificado '
+                texto += 'em caso de oscilações na rede.'
+            else:
+                texto += 'Você não está monitorando o CEP fornecido.'
         else:
-            texto += 'Você não está monitorando o CEP fornecido.'
+            texto = 'Por favor, digite "/abandonar #CEP"'
 
     except (IndexError, ValueError):
         texto = 'Por favor, digite "/abandonar #CEP"'
@@ -260,6 +269,7 @@ def abandonar(update, context):
     )
 
 
+# Log no console
 def interacao(update, comando):
 
     nome = ''
@@ -277,35 +287,29 @@ def interacao(update, comando):
     else:
         nome = 'Tipo do destinatário desconhecido'
 
-    # chatId = 1023606093 # meu!
-
     agora = datetime.now()
     hora = agora.strftime('%H:%M:%S')
     data = agora.strftime('%d/%m/%Y')
 
-    texto = '\n* * * * * INTERAÇÃO * * * * * '
+    texto = '\n* * * * * * INTERAÇÃO * * * * * *'
     texto += '\nQuando: {} - {}'.format(hora, data)
     texto += '\nQuem: ' + nome
-    texto += '\nO quê: ' + comando
-    texto += '\n* * * * * * * * * * * * * * *'
+    texto += '\nO quê: {}'.format(comando)
 
     print(texto)
 
 
+# Envia mensagem ao chatId
 def enviaNotificacao(msg, chatId):
     
     bot = telegram.Bot(token=config['DEFAULT']['token'])
     bot.send_message(chat_id=chatId, text=msg)
-    # context.bot.send_message(
-    #     chat_id = chatId,
-    #     text = msg
-    # )
 
 
 # Handlers
 start_handler = CommandHandler('start', start)
 tensaoMediaHoje_handler = CommandHandler('tensaomediahoje', tensaoMediaHoje)
-ultima_handler = CommandHandler('ultimaleitura', ultima)
+# ultima_handler = CommandHandler('ultimaleitura', ultimaleitura)
 menu_handler = CommandHandler('menu', menu)
 echo_handler = MessageHandler(Filters.text & (~Filters.command), echo)
 help_handler = CommandHandler('help', start)
@@ -317,7 +321,7 @@ unknown_handler = MessageHandler(Filters.command, unknown)
 # Passando os Handlers
 dispatcher.add_handler(start_handler)
 dispatcher.add_handler(tensaoMediaHoje_handler)
-dispatcher.add_handler(ultima_handler)
+# dispatcher.add_handler(ultima_handler)
 dispatcher.add_handler(menu_handler)
 dispatcher.add_handler(echo_handler)
 dispatcher.add_handler(help_handler)
