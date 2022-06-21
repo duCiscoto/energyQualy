@@ -1,9 +1,9 @@
-import re
 from DBFunctions import DBFunctions
-from datetime import datetime, date
+from datetime import datetime
 import configparser
 import logging
 import telegram
+import re
 
 from telegram.ext import (
     Updater, 
@@ -97,36 +97,55 @@ def tensaoMediaHoje(update, context):
 
 
 # Função "Última leitura realizada"
-# def ultimaleitura(update, context):
+def ultimaLeitura(update, context):
 
-#     interacao(update, 'Última leitura')
+    interacao(update, 'Última leitura')
+    chatId = update.effective_chat.id
+    texto = ''
+    ceps = dados.cepsDoInteressado(chatId)
 
-#     leitura = dados.lastEntry()
-#     data = leitura[0][1].strftime('%d/%m/%Y')
-#     hora = leitura[0][1].strftime('%H:%M:%S')
-    
-#     texto = "Última leitura realizada às "
-#     texto += "{} de".format(hora)
-#     texto += " {}\n".format(data)
-#     if leitura[0][3] != None:
-#         texto += "\nFase 1: {}V".format(str(leitura[0][3]).replace('.', ','))
-#     else:
-#         texto += "\nFase 1: sem leitura"
-#     if leitura[0][4] != None:
-#         texto += "\nFase 2: {}V".format(str(leitura[0][4]).replace('.', ','))
-#     else:
-#         texto += "\nFase 2: sem leitura"
-#     if leitura[0][5] != None:
-#         texto += "\nFase 3: {}V\n".format(str(leitura[0][5]).replace('.', ','))
-#     else:
-#         texto += "\nFase 3: sem leitura\n"
-#     texto += "\n* Valores arredondados. Pode não refletir "
-#     texto += "a realidade devido a imprecisão dos equipamentos de medição."
-    
-#     context.bot.send_message(
-#         chat_id = update.effective_chat.id,
-#         text = texto
-#     )
+    if len(ceps) != 0:
+        
+        for i, c in enumerate(ceps):
+            cep = str(c[0])
+            leitura = dados.lastEntryCep(cep)
+            local = dados.cepMonitorado(cep)
+
+            texto += "{} - {}-{}: {}\n".format(
+                i + 1,
+                str(local[0][2])[:5],
+                str(local[0][2])[5:],
+                local[0][3]
+            )
+        
+            data = leitura[0][1].strftime('%d/%m/%Y')
+            hora = leitura[0][1].strftime('%H:%M:%S')
+            
+            texto += "     Última leitura: "
+            texto += "{} - {}".format(hora, data)
+            
+            if leitura[0][3] != None:
+                texto += "\n     Fase 1: {}V".format(str(leitura[0][3]).replace('.', ','))
+            if leitura[0][4] != None:
+                texto += "\n     Fase 2: {}V".format(str(leitura[0][4]).replace('.', ','))
+            if leitura[0][5] != None:
+                texto += "\n     Fase 3: {}V".format(str(leitura[0][5]).replace('.', ','))
+            
+            texto += "\n\n"
+            
+        texto += "* Valores arredondados. Pode não refletir "
+        texto += "a realidade devido a imprecisão dos equipamentos de medição."
+        
+    else:
+        texto += 'Sinto muito.\n'
+        texto += 'Você ainda não está monitorando nenhum CEP.'
+
+
+
+    context.bot.send_message(
+        chat_id = chatId,
+        text = texto
+    )
 
 
 # Função "Última leitura realizada"
@@ -137,7 +156,7 @@ def menu(update, context):
     texto = 'Menu de interações\n'
     texto += '\n "/comando": "informação"'
     texto += '\n "/start": boas-vindas;'
-    # texto += '\n /ultimaleitura: última leitura nos CEPs monitorados;'
+    texto += '\n "/ultimaleitura": última leitura nos CEPs monitorados;'
     # texto += '\n /tensaoMediaHoje: média calculada a partir das leituras de hoje até o momento;'
     texto += '\n "/listarceps": lista os CEPs monitorados;'
     texto += '\n "/monitorar #CEP": inicia o monitoramento do CEP;'
@@ -301,7 +320,7 @@ def interacao(update, comando):
 
 # Envia mensagem ao chatId
 def enviaNotificacao(msg, chatId):
-    
+
     bot = telegram.Bot(token=config['DEFAULT']['token'])
     bot.send_message(chat_id=chatId, text=msg)
 
@@ -309,7 +328,7 @@ def enviaNotificacao(msg, chatId):
 # Handlers
 start_handler = CommandHandler('start', start)
 tensaoMediaHoje_handler = CommandHandler('tensaomediahoje', tensaoMediaHoje)
-# ultima_handler = CommandHandler('ultimaleitura', ultimaleitura)
+ultima_handler = CommandHandler('ultimaleitura', ultimaLeitura)
 menu_handler = CommandHandler('menu', menu)
 echo_handler = MessageHandler(Filters.text & (~Filters.command), echo)
 help_handler = CommandHandler('help', start)
@@ -321,7 +340,7 @@ unknown_handler = MessageHandler(Filters.command, unknown)
 # Passando os Handlers
 dispatcher.add_handler(start_handler)
 dispatcher.add_handler(tensaoMediaHoje_handler)
-# dispatcher.add_handler(ultima_handler)
+dispatcher.add_handler(ultima_handler)
 dispatcher.add_handler(menu_handler)
 dispatcher.add_handler(echo_handler)
 dispatcher.add_handler(help_handler)

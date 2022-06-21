@@ -26,7 +26,7 @@ class DBFunctions():
                     id serial NOT NULL,
                     datahora timestamp(0) NULL,
                     cep numeric(8) NULL,
-                    nome bpchar(150) NULL,
+                    nome bpchar NULL,
                     CONSTRAINT locais_pkey PRIMARY KEY (id)
                 );
 
@@ -387,6 +387,35 @@ class DBFunctions():
                 from alertados a 
                 where a.cep = {} and a.chatid = {}
                 """.format(cep, chatId)
+            )
+            
+            retorno = cur.fetchall()
+        
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
+        finally:
+            if conn is not None:
+                conn.close()
+
+        return retorno
+    
+    
+    def cepsDoInteressado(self, chatId):
+        """
+            Retorna os CEPs do interessado
+        """
+
+        conn = None
+
+        try:
+            params = config()
+            conn = psycopg2.connect(**params)
+            cur = conn.cursor()
+            cur.execute("""
+                select cep 
+                from alertados a 
+                where a.chatid = {};
+                """.format(chatId)
             )
             
             retorno = cur.fetchall()

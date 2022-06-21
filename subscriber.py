@@ -55,6 +55,7 @@ def subscribe(client: mqtt_client):
         if variou:
             interessados = db.interessadosCep(leitura['cep'])
             for id in interessados:
+                print('Notifica ChatId:', id[0])
                 theBot.enviaNotificacao(variou, id[0])
                 print('Alerta do CEP {}-{} enviado para chatId {}'.format(
                     str(leitura['cep'])[:5],
@@ -67,6 +68,34 @@ def subscribe(client: mqtt_client):
 
     client.subscribe(topic)
     client.on_message = on_message
+
+
+# EXCLUSIVO PARA TESTES
+# def novaLeitura(cep, t1, t2, t3):
+#     leitura = {
+#         'cep': cep, #passar sempre inteiro
+#         'fase1': float(t1),
+#         'fase2': float(t2), # adicionar publicação no ESP32
+#         'fase3': float(t3), # adicionar publicação no ESP32
+#         'temperatura': None, # configurar sensor
+#         'humidade': None, # configurar sensor
+#         'chove': None, # configurar sensor
+#     }
+
+#     variou = db.variouTensao(leitura)
+    
+#     if variou:
+#         interessados = db.interessadosCep(leitura['cep'])
+#         for id in interessados:
+#             print('Notifica ChatId:', id[0])
+#             theBot.enviaNotificacao(variou, id[0])
+#             print('Alerta do CEP {}-{} enviado para chatId {}'.format(
+#                 str(leitura['cep'])[:5],
+#                 str(leitura['cep'])[5:],
+#                 id[0]
+#             ))
+
+#     db.insertLeitura(leitura)
 
 
 def run():
